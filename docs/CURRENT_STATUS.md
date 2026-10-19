@@ -9,16 +9,20 @@ _Last updated: 2026-10-19_
 - `Crawler.Infrastructure`: `CrawlerDbContext`, entity configurations (persisted SHA-256 hash columns), MassTransit
   outbox entities, `AddCrawlerPersistence`, migration `InitialCreate` (includes RCSI).
   Verified on LocalDB: RCSI on, unique indexes present, duplicate URL rejected (2601), job delete cascades.
+- `Crawler.Api`: `POST /api/jobs` (202 + Location), `GET /api/jobs/{id}`, `/tree`, `/pages/{pageId}/links`,
+  `GET /api/jobs?page&pageSize`, `POST /api/jobs/{id}/cancel`, `/health/live`, `/health/ready`. Job + root page +
+  first message written in one transaction via the MassTransit bus outbox. ProblemDetails for all errors, enum
+  strings in JSON, UTC timestamps, per-IP rate limit on create, CORS from config, migrate-on-startup (dev).
+  Smoke-tested against LocalDB (RabbitMQ down): all endpoints and error paths behave; outbox row has CorrelationId = JobId.
 - Unit tests: 54 passing.
 - Docs: ADR-001..003 ([DECISIONS.md](DECISIONS.md)), [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Next (in order)
-1. `Crawler.Api`: jobs endpoints, validation, ProblemDetails, health, MassTransit bus outbox, migrate on startup.
-2. `Crawler.Worker`: consumer, page processor (fetch → analyze → persist under job lock), HTTP resilience, retry/DLQ, fault consumer.
-3. docker-compose + Dockerfiles.
-4. React UI (`web/`).
-5. Integration tests (Testcontainers SQL Server), CI workflow.
-6. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
+1. `Crawler.Worker`: consumer, page processor (fetch → analyze → persist under job lock), HTTP resilience, retry/DLQ, fault consumer.
+2. docker-compose + Dockerfiles.
+3. React UI (`web/`).
+4. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
+5. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
 
 ## Known issues
 - None.

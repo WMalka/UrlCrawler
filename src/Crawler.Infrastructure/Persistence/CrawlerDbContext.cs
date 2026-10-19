@@ -11,6 +11,11 @@ public class CrawlerDbContext(DbContextOptions<CrawlerDbContext> options) : DbCo
     public DbSet<CrawlPage> Pages => Set<CrawlPage>();
     public DbSet<PageLink> Links => Set<PageLink>();
 
+    protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+    {
+        configurationBuilder.Properties<DateTime>().HaveConversion<UtcDateTimeConverter>();
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrawlerDbContext).Assembly);
