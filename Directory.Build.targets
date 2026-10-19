@@ -1,0 +1,6 @@
+<Project>
+  <!-- API and Worker share one local secrets store (connection string, RabbitMQ credentials). -->
+  <PropertyGroup Condition="'$(UsingMicrosoftNETSdkWeb)' == 'true'">
+    <UserSecretsId>alteva-crawler-dev</UserSecretsId>
+  </PropertyGroup>
+</Project>

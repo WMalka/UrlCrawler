@@ -42,6 +42,28 @@ public class CrawlJob
         return queuedPageCount == 0 ? CrawlJobStatus.Completed : CrawlJobStatus.Running;
     }
 
+    /// <summary>
+    /// Applies <see cref="ResolveStatusAfterPageFinished"/> and its timestamps. Callers hold the job row lock.
+    /// </summary>
+    public void RecordPageFinished(CrawlPageStatus rootPageStatus, string? rootPageError, int queuedPageCount, DateTime nowUtc)
+    {
+        if (Status.IsTerminal())
+            return;
+
+        var next = ResolveStatusAfterPageFinished(rootPageStatus, queuedPageCount);
+        StartedAt ??= nowUtc;
+        Status = next;
+        if (!next.IsTerminal())
+            return;
+
+        CompletedAt = nowUtc;
+        if (next == CrawlJobStatus.Failed)
+            FailureReason = Truncate($"Start page could not be crawled: {rootPageError ?? "unknown error"}", FailureReasonMaxLength);
+    }
+
+    private static string Truncate(string value, int maxLength) =>
+        value.Length <= maxLength ? value : value[..maxLength];
+
     /// <param name="normalizedUrl">Start URL already normalized by <see cref="Links.UrlNormalizer"/>.</param>
     public static CrawlJob Create(Uri normalizedUrl, byte maxDepth, int maxPages, DateTime createdAtUtc)
     {

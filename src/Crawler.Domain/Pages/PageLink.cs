@@ -11,4 +11,11 @@ public class PageLink
     /// <summary>Persisted computed column (SHA-256 of <see cref="TargetUrl"/>) used for de-duplication.</summary>
     public byte[] TargetUrlHash { get; private set; } = [];
     public bool IsInternal { get; private set; }
+
+    public static PageLink Create(long sourcePageId, Uri normalizedTargetUrl, bool isInternal) => new()
+    {
+        SourcePageId = sourcePageId,
+        TargetUrl = normalizedTargetUrl.AbsoluteUri,
+        IsInternal = isInternal
+    };
 }

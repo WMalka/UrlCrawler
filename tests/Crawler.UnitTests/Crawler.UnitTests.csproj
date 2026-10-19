@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Crawler.Domain\Crawler.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Crawler.Worker\Crawler.Worker.csproj" />
   </ItemGroup>
 
 </Project>

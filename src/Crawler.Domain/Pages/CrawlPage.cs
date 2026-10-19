@@ -33,4 +33,21 @@ public class CrawlPage
         Depth = 0,
         Status = CrawlPageStatus.Queued
     };
+
+    public static CrawlPage CreateChild(Guid jobId, long parentPageId, byte depth, Uri normalizedUrl)
+    {
+        ArgumentOutOfRangeException.ThrowIfZero(depth);
+
+        return new CrawlPage
+        {
+            JobId = jobId,
+            ParentPageId = parentPageId,
+            Url = normalizedUrl.AbsoluteUri,
+            Depth = depth,
+            Status = CrawlPageStatus.Queued
+        };
+    }
+
+    public static string? TruncateError(string? error) =>
+        error is null || error.Length <= ErrorMaxLength ? error : error[..ErrorMaxLength];
 }
