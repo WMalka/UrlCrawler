@@ -30,12 +30,17 @@ _Last updated: 2026-10-19_
   Job Details (polls every 1.5 s while Pending/Running, progress, cancel, recursive tree with DLR and lazy links once
   Completed), History (paged). Loading/error/empty states, accessible toggles. nginx image proxies `/api` to the API.
   **Verified:** `npm run build` + lint pass; full compose stack serves the UI on :3000 and a crawl renders end to end.
-- Unit tests: 64 passing.
+- **Tests: 77 passing** (Release). Unit 64. Integration 13: Testcontainers SQL Server + MassTransit in-memory harness +
+  local HTML fixtures (worker pipeline: crawl, concurrent duplicates, redelivery, limits, failures, cancel, poison;
+  API: create via outbox, validation, tree 409, cancel, history). Found and fixed: `MaxRetryAttempts=0` crashed the
+  HTTP pipeline (Polly needs >= 1); connection string was read before test configuration applied (now resolved lazily).
+- CI: `.github/workflows/ci.yml`: .NET build + tests, web lint + build, `docker compose build`.
+- Docs: README (run, API, rules, message schema, idempotency, retries, DLQ, SQL, cuts, next steps), ARCHITECTURE.md.
 - Docs: ADR-001..003 ([DECISIONS.md](DECISIONS.md)), [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-## Next (in order)
-1. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
-2. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
+## Next
+- Push to GitHub (https://github.com/WMalka/UrlCrawler) and confirm the CI run is green.
+- Then the known gaps below, starting with SSRF protection.
 
 ## Known gaps (to address later, in priority order)
 1. **SSRF**: job URLs are not checked against loopback/private/link-local ranges (e.g. `http://localhost`,
