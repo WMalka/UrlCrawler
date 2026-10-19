@@ -57,7 +57,7 @@ internal sealed class CrawlPageProcessor(
         {
             FetchOutcome.Html => PageResult.Done(message.JobId, message.PageId, target.Depth,
                 AnalyzeLinks(fetch, pageUrl, startHost)),
-            FetchOutcome.NotHtml or FetchOutcome.TooLarge => PageResult.Skipped(message.JobId, message.PageId, target.Depth, fetch.Error),
+            FetchOutcome.NotHtml or FetchOutcome.TooLarge or FetchOutcome.RedirectNotFollowed => PageResult.Skipped(message.JobId, message.PageId, target.Depth, fetch.Error),
             _ => PageResult.Failed(message.JobId, message.PageId, target.Depth, fetch.Error)
         };
 

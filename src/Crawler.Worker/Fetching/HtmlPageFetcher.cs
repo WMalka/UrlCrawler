@@ -23,6 +23,8 @@ internal sealed class HtmlPageFetcher(HttpClient http, IOptions<CrawlerWorkerOpt
         try
         {
             using var response = await http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+            if ((int)response.StatusCode is >= 300 and < 400)
+                return FetchResult.RedirectNotFollowed((int)response.StatusCode, response.Headers.Location);
             if (!response.IsSuccessStatusCode)
                 return FetchResult.HttpError((int)response.StatusCode, response.ReasonPhrase);
 

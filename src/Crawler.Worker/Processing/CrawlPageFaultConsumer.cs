@@ -19,7 +19,7 @@ internal sealed class CrawlPageFaultConsumer(CrawlResultWriter writer, ILogger<C
         using var scope = logger.BeginScope(LogScope.For(context, message.JobId, message.PageId));
 
         var exceptionType = context.Message.Exceptions.FirstOrDefault()?.ExceptionType ?? "unknown";
-        logger.LogError("Page {PageId} of job {JobId} moved to the error queue after retries ({ExceptionType})",
+        logger.LogError("Page {PageId} of job {JobId} moved to the error queue ({ExceptionType})",
             message.PageId, message.JobId, exceptionType);
 
         if (exceptionType == typeof(UnknownPageException).FullName)

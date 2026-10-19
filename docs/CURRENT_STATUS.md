@@ -14,15 +14,22 @@ _Last updated: 2026-10-19_
   first message written in one transaction via the MassTransit bus outbox. ProblemDetails for all errors, enum
   strings in JSON, UTC timestamps, per-IP rate limit on create, CORS from config, migrate-on-startup (dev).
   Smoke-tested against LocalDB (RabbitMQ down): all endpoints and error paths behave; outbox row has CorrelationId = JobId.
-- Unit tests: 54 passing.
+- `Crawler.Worker`: fetch (retry/timeout/2 MB/HTML-only), AngleSharp link extraction, idempotent persistence under a
+  per-job lock, child enqueueing within MaxPages, retry 1s/5s/15s, DLQ, fault consumer, health endpoints.
+- **End-to-end verified (2026-10-19)** against Docker SQL Server + RabbitMQ:
+  - `scrapethissite.com/pages/`, depth 2: Completed in ~4 s, 38 pages / 774 edges, tree and ratios correct.
+  - Root message delivered 3x concurrently: identical rows to a single delivery (0 duplicate pages/edges);
+    duplicates stopped by the conditional page update under the job lock.
+  - Malformed message and unknown-page message both land in `crawl-page-requested_error`; the poison message is not retried.
+  - API and Worker `/health/ready` Healthy.
+- Unit tests: 64 passing.
 - Docs: ADR-001..003 ([DECISIONS.md](DECISIONS.md)), [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Next (in order)
-1. `Crawler.Worker`: consumer, page processor (fetch → analyze → persist under job lock), HTTP resilience, retry/DLQ, fault consumer.
-2. docker-compose + Dockerfiles.
-3. React UI (`web/`).
-4. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
-5. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
+1. docker-compose + Dockerfiles.
+2. React UI (`web/`).
+3. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
+4. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
 
 ## Known gaps (to address later, in priority order)
 1. **SSRF**: job URLs are not checked against loopback/private/link-local ranges (e.g. `http://localhost`,
@@ -33,3 +40,8 @@ _Last updated: 2026-10-19_
    covering index already supports it.
 4. **Rate limit is hardcoded** (10 job creations/min per IP): move to `RateLimiting` config section.
 5. **Page links endpoint is not paged**: the worker caps stored links per page; add paging if the cap is raised.
+6. **Root redirect to another host** (e.g. `example.com` → `www.example.com`): every link counts as external, so the
+   crawl stops at the root. This follows the spec literally ("host of the initial job URL"). Option: use the root
+   page's final host after redirects as the start host.
+7. **Malformed messages** cannot be deserialized, so no `Fault<T>` is raised; harmless (they reference no page).
+   A message lost without a fault would leave its job Running: add a sweeper for pages Queued longer than N minutes.
