@@ -222,16 +222,53 @@ Performance notes:
   them for startup order and container health.
 - RabbitMQ management UI shows queue depth, consumers and the DLQ.
 
+## Requirements coverage
+
+| Area | Requirement | Status |
+|---|---|---|
+| Processes | Crawl API and Crawl Worker as separate projects/containers | ✅ Worker runs as 2 replicas |
+| Broker and database | RabbitMQ, SQL Server, Docker Compose; jobs, pages and edges persisted | ✅ |
+| Job lifecycle | GUID, input URL, `Pending`/`Running`/`Completed`/`Failed`/`Canceled`, 3 timestamps, failure reason | ✅ |
+| API | Create (`{url, maxDepth?}` → `{jobId}`), status and summary, tree, history (paginated, newest first) | ✅ |
+| API (optional) | Cancel a job | ✅ |
+| Crawling rules | HTML only, default depth 2, absolute URLs, outgoing links, relative/anchor/duplicate handling, max pages, timeouts and retries | ✅ |
+| Domain Link Ratio | Starting host, non-http(s) schemes ignored, 0 when a page has no links | ✅ |
+| Event-driven | Idempotent worker (no duplicate rows), retries, DLQ, documented in this README | ✅ Tested with 3× concurrent delivery |
+| UI | Start Crawl, Job Details (polling, tree when complete), History (click to open), loading and error states | ✅ SSE/SignalR (stretch) not done; polling is used |
+| Tests | Unit (normalization, ratio) and integration with local HTML fixtures | ✅ 77 tests |
+| Observability | Structured logs with jobId/correlationId, health endpoints for API and Worker | ✅ |
+| Delivery | Compose stack, README (run, choices, limitations, first/cut/next) | ✅ |
+| Delivery (optional) | CI pipeline (GitHub Actions): build and test | ✅ |
+
+**Pagination:** the history endpoint and History screen are paginated (`page`, `pageSize`, `totalCount`, Prev/Next).
+Deferred, and not required: keyset paging, which pays off only for very large tables, and paging for the per-page
+links endpoint.
+
 ## Key architectural choices
 
-1. **Lean schema, derived progress** – limits saved per job, progress counted from page statuses, hash columns with
-   unique indexes. [ADR-001](docs/DECISIONS.md#adr-001-lean-crawl-schema-with-derived-progress)
-2. **URL normalization and link classification** – one canonical URL form; exact-host internal check.
-   [ADR-002](docs/DECISIONS.md#adr-002-url-normalization-and-link-classification)
-3. **Domain owns rules, SQL applies them** – pure, unit-tested rules on `CrawlJob`; atomic, conditional SQL in the
-   worker. [ADR-003](docs/DECISIONS.md#adr-003-domain-owns-transition-rules-sql-applies-them-atomically)
-4. **Transactional outbox** in API and Worker, so database state and messages never disagree.
-5. **One message per page**, not per job: work spreads across replicas, and one slow page blocks nothing else.
+| Decision | Why | Alternative not chosen |
+|---|---|---|
+| **One message per page** | Work spreads across Worker replicas, a slow page does not stall its job, and at-least-once delivery is really exercised. | One message per job: simpler, but it does not scale out and a retry re-crawls everything. |
+| **Transactional outbox** (MassTransit + EF Core) in API and Worker | Database state and messages commit together, so a job never exists without its first message and no message refers to rolled-back data. | Publish after commit: a crash in between loses or duplicates work. |
+| **MassTransit 8** | Retry policies, error queue (DLQ), `Fault<T>` events and the outbox come built in. | Raw RabbitMQ.Client: dead-letter exchanges, retry and the outbox written by hand. MassTransit 9 needs a commercial licence. |
+| **Lean schema, derived progress** ([ADR-001](docs/DECISIONS.md#adr-001-lean-crawl-schema-with-derived-progress)) | Progress is counted from page statuses: one source of truth, so no counters drift on the success, skip, fault or cancel paths. Limits are saved on each job. | Counter columns on the job, or limits from config only. |
+| **Per-job `UPDLOCK` + conditional update** | De-duplication and the page budget are race-free across replicas, with simple code. | Optimistic concurrency with retry loops. |
+| **URL rules in one place** ([ADR-002](docs/DECISIONS.md#adr-002-url-normalization-and-link-classification)) | One canonical URL form used for de-duplication, counting and the ratio. | Rules spread across parser and persistence code. |
+| **Domain decides, SQL applies** ([ADR-003](docs/DECISIONS.md#adr-003-domain-owns-transition-rules-sql-applies-them-atomically)) | Rules are pure and unit-tested; atomicity and idempotency stay in SQL. | Rules hidden in SQL strings, or rich entities with load-modify-save round trips. |
+| **SQL Server + EF Core** | Familiar stack. SQL Server computes the URL hash as an indexed column. | PostgreSQL would work equally well. |
+| **AngleSharp** | HTML5-spec parser: tolerates broken HTML, supports `<base href>` and detects the encoding. | Regex or less spec-compliant parsers. |
+| **Vite** | The assignment allows Vite, CRA or Next. Vite is fast and simple, and builds static files that nginx serves. | CRA is deprecated. Next.js is a server-rendering framework that needs a Node server; nothing here needs SEO or SSR. |
+| **TanStack Query** | Polling in one line (`refetchInterval`, active only while a job runs), plus caching and loading/error states. | Hand-written `useEffect` polling, a common source of race conditions and leaks. |
+| **Testcontainers** | Locks, RCSI, computed columns and the outbox behave correctly only on real SQL Server. | EF InMemory or SQLite: tests would pass on behaviour that differs in production. |
+| **No MediatR, no extra Application layer** | The operations are simple; extra layers would add code without benefit. | Full clean-architecture boilerplate. |
+
+## Why .NET 8 and not .NET 10 (LTS)
+
+1. **The assignment asks for it** (".NET 8 / ASP.NET Core REST APIs"), so it matches the brief exactly.
+2. **Trade-off:** .NET 8 support ends on **10 November 2026**. .NET 10 (LTS, released November 2025) is supported
+   until November 2028. For a production system, .NET 10 is the right target today.
+3. **Upgrade path:** retarget to `net10.0`, move the EF Core and ASP.NET Core packages to 10.x, and re-check
+   MassTransit compatibility. MassTransit is pinned to 8.4.1 because 8.5 pulls in EF Core 9 on .NET 8.
 
 ## What I implemented first, and why
 
@@ -257,13 +294,14 @@ The order follows risk: the hard parts (concurrency, at-least-once delivery) fir
 
 ## What I'd do next with more time
 
-1. SSRF protection in the validator and the worker, configurable for local test fixtures.
-2. A sweeper for pages `Queued` too long (covers a message lost without a fault).
-3. OpenTelemetry traces and metrics (pages/sec, failures, queue depth).
-4. Rate limit settings in config; trust `X-Forwarded-For` from nginx.
-5. Keyset paging for history; paging for page links.
-6. Optional host-alias rule (`www.` = apex) and using the root page's final host after redirects.
-7. Per-host politeness (concurrency limit, robots.txt).
+1. Use the root page's final host after redirects as the starting domain (e.g. `example.com` → `www.example.com`).
+2. Rate limit settings in config; trust `X-Forwarded-For` from nginx so UI users don't share one limit.
+3. SSRF protection in the validator and the worker, configurable for local test fixtures.
+4. Upgrade to .NET 10 LTS (.NET 8 support ends November 2026).
+5. A sweeper for pages `Queued` too long (covers a message lost without a fault).
+6. OpenTelemetry traces and metrics (pages/sec, failures, queue depth).
+7. Keyset paging for history; paging for page links.
+8. Per-host politeness (concurrency limit, robots.txt) and an optional host-alias rule (`www.` = apex).
 
 ## Assumptions and trade-offs
 
