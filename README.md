@@ -29,6 +29,21 @@ Each page is one message. A worker fetches the page, stores its links, inserts n
 page limits) and publishes one message per new page, all in one database transaction. The job is `Completed` when no
 page is still `Queued`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
+## Screenshots
+
+**Start a crawl:** URL and optional max depth, validated in the browser and on the server.
+
+![Start Crawl screen](docs/images/start-crawl.jpg)
+
+**Job details:** status, timestamps and progress (polled while running). Once completed, the page tree shows each
+page's status, depth, Domain Link Ratio (DLR) and link count. Skipped and failed pages show the reason.
+
+![Job Details screen with the page tree](docs/images/job-details.jpg)
+
+**History:** previous jobs, newest first, paginated. Click a row to open its details.
+
+![History screen](docs/images/history.jpg)
+
 ## How to run locally
 
 ### Required: Docker (full stack)
