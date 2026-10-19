@@ -31,14 +31,17 @@ internal static class FetchingServiceCollectionExtensions
             .AddResilienceHandler("page-fetch", (pipeline, context) =>
             {
                 var settings = context.ServiceProvider.GetRequiredService<IOptions<CrawlerWorkerOptions>>().Value;
-                pipeline.AddRetry(new HttpRetryStrategyOptions
+                if (settings.MaxRetryAttempts > 0) // Polly rejects a retry strategy with zero attempts
                 {
-                    // Default ShouldHandle: HttpRequestException, attempt timeout, 5xx, 408, 429 (honours Retry-After).
-                    MaxRetryAttempts = settings.MaxRetryAttempts,
-                    BackoffType = DelayBackoffType.Exponential,
-                    UseJitter = true,
-                    Delay = TimeSpan.FromSeconds(1)
-                });
+                    pipeline.AddRetry(new HttpRetryStrategyOptions
+                    {
+                        // Default ShouldHandle: HttpRequestException, attempt timeout, 5xx, 408, 429 (honours Retry-After).
+                        MaxRetryAttempts = settings.MaxRetryAttempts,
+                        BackoffType = DelayBackoffType.Exponential,
+                        UseJitter = true,
+                        Delay = TimeSpan.FromSeconds(1)
+                    });
+                }
                 pipeline.AddTimeout(TimeSpan.FromSeconds(settings.AttemptTimeoutSeconds));
             });
 

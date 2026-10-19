@@ -14,7 +14,7 @@ builder.Services.AddOptions<CrawlJobOptions>()
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-builder.Services.AddCrawlerPersistence(builder.Configuration);
+builder.Services.AddCrawlerPersistence();
 builder.Services.AddCrawlerMessaging(builder.Configuration);
 
 builder.Services.AddSingleton(TimeProvider.System);

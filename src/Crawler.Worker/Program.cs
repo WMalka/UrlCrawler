@@ -1,29 +1,13 @@
 using Crawler.Infrastructure;
 using Crawler.Infrastructure.Messaging;
 using Crawler.Worker;
-using Crawler.Worker.Fetching;
-using Crawler.Worker.Processing;
-using MassTransit;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOptions<CrawlerWorkerOptions>()
-    .Bind(builder.Configuration.GetSection(CrawlerWorkerOptions.SectionName))
-    .ValidateDataAnnotations()
-    .ValidateOnStart();
-
-builder.Services.AddCrawlerPersistence(builder.Configuration);
-builder.Services.AddCrawlerMessaging(builder.Configuration, bus =>
-{
-    bus.AddConsumer<CrawlPageConsumer, CrawlPageConsumerDefinition>();
-    bus.AddConsumer<CrawlPageFaultConsumer, CrawlPageFaultConsumerDefinition>();
-});
-
-builder.Services.AddSingleton(TimeProvider.System);
-builder.Services.AddPageFetching();
-builder.Services.AddScoped<CrawlPageProcessor>();
-builder.Services.AddScoped<CrawlResultWriter>();
+builder.Services.AddCrawlerPersistence();
+builder.Services.AddCrawlerMessaging(builder.Configuration, bus => bus.AddCrawlerWorkerConsumers());
+builder.Services.AddCrawlerWorker(builder.Configuration);
 
 var app = builder.Build();
 

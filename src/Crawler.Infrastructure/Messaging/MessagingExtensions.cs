@@ -24,24 +24,9 @@ public static class MessagingExtensions
             .ValidateDataAnnotations()
             .ValidateOnStart();
 
-        // Every message carries the job id as CorrelationId, so logs and traces group by job.
-        MessageCorrelation.UseCorrelationId<CrawlPageRequested>(message => message.JobId);
-
         services.AddMassTransit(bus =>
         {
-            bus.SetKebabCaseEndpointNameFormatter();
-
-            bus.AddEntityFrameworkOutbox<CrawlerDbContext>(outbox =>
-            {
-                outbox.UseSqlServer();
-                // Messages published outside a consumer (API job creation) are stored in the
-                // caller's transaction and delivered after commit.
-                outbox.UseBusOutbox();
-                // Reads inside consumers must not hold shared locks while the page is fetched (ADR-001).
-                outbox.IsolationLevel = IsolationLevel.ReadCommitted;
-                outbox.QueryDelay = TimeSpan.FromSeconds(1);
-            });
-
+            bus.AddCrawlerOutbox();
             configureBus?.Invoke(bus);
 
             bus.UsingRabbitMq((context, transport) =>
@@ -57,5 +42,26 @@ public static class MessagingExtensions
         });
 
         return services;
+    }
+
+    /// <summary>Transport-independent bus settings; also used by tests with the in-memory test harness.</summary>
+    public static IBusRegistrationConfigurator AddCrawlerOutbox(this IBusRegistrationConfigurator bus)
+    {
+        // Every message carries the job id as CorrelationId, so logs and traces group by job.
+        MessageCorrelation.UseCorrelationId<CrawlPageRequested>(message => message.JobId);
+
+        bus.SetKebabCaseEndpointNameFormatter();
+        bus.AddEntityFrameworkOutbox<CrawlerDbContext>(outbox =>
+        {
+            outbox.UseSqlServer();
+            // Messages published outside a consumer (API job creation) are stored in the
+            // caller's transaction and delivered after commit.
+            outbox.UseBusOutbox();
+            // Reads inside consumers must not hold shared locks while the page is fetched (ADR-001).
+            outbox.IsolationLevel = IsolationLevel.ReadCommitted;
+            outbox.QueryDelay = TimeSpan.FromSeconds(1);
+        });
+
+        return bus;
     }
 }
