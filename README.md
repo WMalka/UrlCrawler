@@ -31,18 +31,36 @@ page is still `Queued`. See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Screenshots
 
-**Start a crawl:** URL and optional max depth, validated in the browser and on the server.
+**1. Start a crawl:** URL and optional max depth (empty = server default 2).
 
 ![Start Crawl screen](docs/images/start-crawl.jpg)
 
-**Job details:** status, timestamps and progress (polled while running). Once completed, the page tree shows each
-page's status, depth, Domain Link Ratio (DLR) and link count. Skipped and failed pages show the reason.
+**2. Validation:** invalid input is rejected per field, in the browser and again by the API.
 
-![Job Details screen with the page tree](docs/images/job-details.jpg)
+![Start Crawl with validation errors](docs/images/validation.jpg)
 
-**History:** previous jobs, newest first, paginated. Click a row to open its details.
+**3. While running:** the job page polls every 1.5 s and shows progress (finished pages out of all queued pages, up to
+the 200-page limit) with a Cancel button.
+
+![Job Details while the crawl is running](docs/images/job-running.jpg)
+
+**4. When completed:** the page tree shows each page's status, depth, Domain Link Ratio (DLR) and link count.
+Skipped and failed pages show the reason (non-HTML content, a refused HTTPS → HTTP redirect, HTTP 400).
+
+![Job Details with the completed page tree](docs/images/job-details.jpg)
+
+**5. Outgoing links:** click a page's link count to load its links on demand, marked internal or external. Here 5 of 6
+links are internal, so DLR = 5 / 6 = 83.3%.
+
+![Outgoing links of one page](docs/images/page-links.jpg)
+
+**6. History:** previous jobs, newest first, paginated. Click a row to open its details.
 
 ![History screen](docs/images/history.jpg)
+
+**7. API (Swagger):** all endpoints at http://localhost:8080/swagger.
+
+![Swagger UI of the Crawl API](docs/images/swagger.jpg)
 
 ## How to run locally
 
