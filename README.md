@@ -273,10 +273,6 @@ Performance notes:
 | Delivery | Compose stack, README (run, choices, limitations, first/cut/next) | ✅ |
 | Delivery (optional) | CI pipeline (GitHub Actions): build and test | ✅ |
 
-**Pagination:** the history endpoint and History screen are paginated (`page`, `pageSize`, `totalCount`, Prev/Next).
-Deferred, and not required: keyset paging, which pays off only for very large tables, and paging for the per-page
-links endpoint.
-
 ## Key architectural choices
 
 | Decision | Why | Alternative not chosen |
