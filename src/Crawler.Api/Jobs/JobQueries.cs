@@ -9,32 +9,23 @@ namespace Crawler.Api.Jobs;
 /// <summary>Read side: no-tracking projections straight to DTOs.</summary>
 public sealed class JobQueries(CrawlerDbContext db)
 {
-    public async Task<JobDetailsDto?> GetDetailsAsync(Guid jobId, CancellationToken cancellationToken)
-    {
-        var job = await db.Jobs.AsNoTracking()
+    /// <summary>
+    /// One round trip: the page counts are correlated scalar subqueries, each an index seek on
+    /// (JobId, Status). This is the endpoint the UI polls while a job runs.
+    /// </summary>
+    public Task<JobWithPageCountsDto?> GetJobWithPageCountsAsync(Guid jobId, CancellationToken cancellationToken) =>
+        db.Jobs.AsNoTracking()
             .Where(j => j.Id == jobId)
-            .Select(j => new { j.Id, j.Url, j.Status, j.MaxDepth, j.MaxPages, j.CreatedAt, j.StartedAt, j.CompletedAt, j.FailureReason })
+            .Select(j => new JobWithPageCountsDto(
+                j.Id, j.Url, j.Status, j.MaxDepth, j.MaxPages,
+                j.CreatedAt, j.StartedAt, j.CompletedAt, j.FailureReason,
+                new PageCountsDto(
+                    db.Pages.Count(p => p.JobId == j.Id),
+                    db.Pages.Count(p => p.JobId == j.Id && p.Status == CrawlPageStatus.Queued),
+                    db.Pages.Count(p => p.JobId == j.Id && p.Status == CrawlPageStatus.Done),
+                    db.Pages.Count(p => p.JobId == j.Id && p.Status == CrawlPageStatus.Skipped),
+                    db.Pages.Count(p => p.JobId == j.Id && p.Status == CrawlPageStatus.Failed))))
             .SingleOrDefaultAsync(cancellationToken);
-        if (job is null)
-            return null;
-
-        var counts = await db.Pages.AsNoTracking()
-            .Where(p => p.JobId == jobId)
-            .GroupBy(p => p.Status)
-            .Select(g => new { Status = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.Status, g => g.Count, cancellationToken);
-
-        int CountOf(CrawlPageStatus status) => counts.GetValueOrDefault(status);
-        var progress = new JobProgressDto(
-            counts.Values.Sum(),
-            CountOf(CrawlPageStatus.Queued),
-            CountOf(CrawlPageStatus.Done),
-            CountOf(CrawlPageStatus.Skipped),
-            CountOf(CrawlPageStatus.Failed));
-
-        return new JobDetailsDto(job.Id, job.Url, job.Status, job.MaxDepth, job.MaxPages,
-            job.CreatedAt, job.StartedAt, job.CompletedAt, job.FailureReason, progress);
-    }
 
     public async Task<PagedResult<JobSummaryDto>> GetHistoryAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
@@ -51,17 +42,19 @@ public sealed class JobQueries(CrawlerDbContext db)
     }
 
     /// <summary>
-    /// Loads all pages of the job in one query (bounded by MaxPages) and links them via ParentPageId.
-    /// Works for running jobs too, returning the part of the tree discovered so far.
+    /// The tree is only served for completed jobs, so clients never render a half-built result.
+    /// Loads all pages in one query (bounded by MaxPages) and links them via ParentPageId.
     /// </summary>
-    public async Task<JobTreeDto?> GetTreeAsync(Guid jobId, CancellationToken cancellationToken)
+    public async Task<JobTreeResult> GetTreeAsync(Guid jobId, CancellationToken cancellationToken)
     {
         var status = await db.Jobs
             .Where(j => j.Id == jobId)
             .Select(j => (CrawlJobStatus?)j.Status)
             .SingleOrDefaultAsync(cancellationToken);
         if (status is null)
-            return null;
+            return JobTreeResult.NotFound;
+        if (status != CrawlJobStatus.Completed)
+            return JobTreeResult.NotCompleted(status.Value);
 
         var pages = await db.Pages.AsNoTracking()
             .Where(p => p.JobId == jobId)
@@ -69,7 +62,7 @@ public sealed class JobQueries(CrawlerDbContext db)
             .Select(p => new PageRow(p.Id, p.ParentPageId, p.Url, p.Depth, p.Status, p.LinkCount, p.InternalLinkCount, p.Error))
             .ToListAsync(cancellationToken);
 
-        return new JobTreeDto(jobId, status.Value, BuildTree(pages));
+        return JobTreeResult.Available(new JobTreeDto(jobId, status.Value, BuildTree(pages)));
     }
 
     public async Task<IReadOnlyList<PageLinkDto>?> GetLinksAsync(Guid jobId, long pageId, CancellationToken cancellationToken)

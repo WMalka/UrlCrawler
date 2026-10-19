@@ -33,16 +33,29 @@ public sealed class JobsController(JobCommands commands, JobQueries queries) : C
     }
 
     [HttpGet("{jobId:guid}")]
-    [ProducesResponseType<JobDetailsDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<JobWithPageCountsDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(Guid jobId, CancellationToken cancellationToken) =>
-        OkOrNotFound(await queries.GetDetailsAsync(jobId, cancellationToken));
+        OkOrNotFound(await queries.GetJobWithPageCountsAsync(jobId, cancellationToken));
 
+    /// <summary>Hierarchical result; available once the job has completed (409 before that).</summary>
     [HttpGet("{jobId:guid}/tree")]
     [ProducesResponseType<JobTreeDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetTree(Guid jobId, CancellationToken cancellationToken) =>
-        OkOrNotFound(await queries.GetTreeAsync(jobId, cancellationToken));
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> GetTree(Guid jobId, CancellationToken cancellationToken)
+    {
+        var result = await queries.GetTreeAsync(jobId, cancellationToken);
+        return result.Availability switch
+        {
+            JobTreeAvailability.Available => Ok(result.Tree),
+            JobTreeAvailability.NotCompleted => Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Result tree is not available yet.",
+                detail: $"The tree is available once the job has completed. Current status: {result.JobStatus}."),
+            _ => NotFoundProblem()
+        };
+    }
 
     [HttpGet("{jobId:guid}/pages/{pageId:long}/links")]
     [ProducesResponseType<IReadOnlyList<PageLinkDto>>(StatusCodes.Status200OK)]
@@ -79,10 +92,11 @@ public sealed class JobsController(JobCommands commands, JobQueries queries) : C
         await commands.CancelAsync(jobId, cancellationToken) switch
         {
             CancelJobResult.Canceled => NoContent(),
-            CancelJobResult.NotFound => Problem(statusCode: StatusCodes.Status404NotFound, title: "Job not found."),
+            CancelJobResult.NotFound => NotFoundProblem(),
             _ => Problem(statusCode: StatusCodes.Status409Conflict, title: "Job has already finished.")
         };
 
-    private IActionResult OkOrNotFound(object? result) =>
-        result is null ? Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found.") : Ok(result);
+    private IActionResult OkOrNotFound(object? result) => result is null ? NotFoundProblem() : Ok(result);
+
+    private ObjectResult NotFoundProblem() => Problem(statusCode: StatusCodes.Status404NotFound, title: "Not found.");
 }
