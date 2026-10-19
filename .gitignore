@@ -485,3 +485,8 @@ $RECYCLE.BIN/
 
 # Personal AI assistant instructions (not part of the submission)
 Claude.txt
+
+# Environment-specific CA certificates (see certs/README.md)
+certs/*
+!certs/README.md
+!certs/.gitkeep

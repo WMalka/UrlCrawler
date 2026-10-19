@@ -28,3 +28,14 @@
 - Credentials come from the shared user-secrets store `alteva-crawler-dev` (`ConnectionStrings:Crawler`,
   `RabbitMq:Username`, `RabbitMq:Password`), set once with `dotnet user-secrets set … --project src/Crawler.Api`.
 - A running app locks its `bin` folder: stop it before `dotnet build`/`dotnet test`.
+
+## Crawls fail in Docker with `Network error: SecureConnectionError` (but work when run on Windows)
+- **Cause:** a TLS-intercepting filter/proxy (here NetFree) re-signs HTTPS traffic with its own CA. Windows trusts that
+  CA; the Linux containers do not (`curl` in the container: "unable to get local issuer certificate").
+- **Fix:** export the proxy's root CA(s) as PEM `*.crt` into `certs/` (git-ignored) and rebuild:
+  `docker compose build api worker`. The Dockerfile runs `update-ca-certificates` on them. For NetFree (PowerShell):
+  `Get-ChildItem Cert:\LocalMachine\Root | ? Subject -match 'O=NetFree'` → export each `RawData` as base64 PEM.
+
+## `docker compose up` port conflicts
+- Standalone containers from earlier manual setup (e.g. `crawler-sql`, `crawler-rabbit`) use 1433/5672/15672.
+  Stop them, or override host ports in `.env` (`SQL_PORT`, `RABBITMQ_PORT`, `RABBITMQ_UI_PORT`, `API_PORT`, `WEB_PORT`).

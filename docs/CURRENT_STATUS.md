@@ -22,14 +22,17 @@ _Last updated: 2026-10-19_
     duplicates stopped by the conditional page update under the job lock.
   - Malformed message and unknown-page message both land in `crawl-page-requested_error`; the poison message is not retried.
   - API and Worker `/health/ready` Healthy.
+- Docker: one multi-stage `Dockerfile` (build arg `PROJECT`) for API and Worker, non-root, curl health checks,
+  optional extra CAs from `certs/`. `docker-compose.yml`: SQL Server, RabbitMQ (management UI), API (migrates,
+  Swagger), 2 Worker replicas, web (nginx; built by the UI work). Health-gated startup order; secrets from `.env`.
+  **Verified:** stack healthy, crawl Completed (38 pages) with work split across both replicas (21/17).
 - Unit tests: 64 passing.
 - Docs: ADR-001..003 ([DECISIONS.md](DECISIONS.md)), [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Next (in order)
-1. docker-compose + Dockerfiles.
-2. React UI (`web/`).
-3. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
-4. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
+1. React UI (`web/`).
+2. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
+3. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
 
 ## Known gaps (to address later, in priority order)
 1. **SSRF**: job URLs are not checked against loopback/private/link-local ranges (e.g. `http://localhost`,
