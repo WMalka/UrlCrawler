@@ -1,0 +1,311 @@
+:root {
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.5;
+  color: #1f2328;
+  background: #f6f8fa;
+}
+
+body {
+  margin: 0;
+}
+
+a {
+  color: #0550ae;
+}
+
+:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
+}
+
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  background: #24292f;
+  color: #fff;
+}
+
+.navbar .brand {
+  font-weight: 600;
+}
+
+.navbar nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.navbar a {
+  color: #d0d7de;
+  text-decoration: none;
+}
+
+.navbar a.active {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem 3rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid #8c959f;
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input {
+  font: inherit;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid #8c959f;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input[aria-invalid="true"] {
+  border-color: #cf222e;
+}
+
+.form {
+  display: grid;
+  gap: 1rem;
+  max-width: 560px;
+  justify-items: start;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field p {
+  margin: 0;
+}
+
+.field-error,
+.node-error {
+  color: #cf222e;
+}
+
+.node-error {
+  margin: 0 0 0 2rem;
+  font-size: 0.9rem;
+}
+
+.muted {
+  color: #57606a;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  display: grid;
+  gap: 1rem;
+  justify-items: start;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.35rem 1rem;
+  margin: 0;
+}
+
+.details dt {
+  font-weight: 600;
+}
+
+.details dd {
+  margin: 0;
+  word-break: break-all;
+}
+
+.progress {
+  width: 100%;
+}
+
+.progress label {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.progress progress {
+  width: 100%;
+  max-width: 480px;
+}
+
+.progress p {
+  margin: 0.25rem 0 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid currentColor;
+}
+
+.badge-pending,
+.badge-queued {
+  color: #6e7781;
+}
+
+.badge-running {
+  color: #0969da;
+}
+
+.badge-completed,
+.badge-done {
+  color: #1a7f37;
+}
+
+.badge-failed {
+  color: #cf222e;
+}
+
+.badge-canceled,
+.badge-skipped {
+  color: #9a6700;
+}
+
+.state {
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.state-loading {
+  color: #57606a;
+}
+
+.state-error {
+  background: #ffebe9;
+  border: 1px solid #ff8182;
+}
+
+.state-error p {
+  margin: 0.25rem 0 0.5rem;
+}
+
+.state-empty {
+  background: #fff;
+  border: 1px dashed #d0d7de;
+  color: #57606a;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #d0d7de;
+}
+
+.table td:first-child {
+  word-break: break-all;
+}
+
+.table[aria-busy="true"] {
+  opacity: 0.6;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: #f3f4f6;
+}
+
+.pager {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.tree {
+  list-style: none;
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.tree-node {
+  margin: 0.2rem 0;
+}
+
+.tree-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle {
+  display: inline-block;
+  width: 1.75rem;
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: center;
+}
+
+.tree-url {
+  word-break: break-all;
+}
+
+.link-button {
+  padding: 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.tree-links {
+  margin: 0.25rem 0 0.5rem 2rem;
+  padding: 0.5rem;
+  background: #fff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+}
+
+.links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 0.9rem;
+}
+
+.tag {
+  font-size: 0.75rem;
+  color: #57606a;
+}
+
+.tag-internal {
+  color: #1a7f37;
+}

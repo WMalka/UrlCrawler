@@ -26,13 +26,16 @@ _Last updated: 2026-10-19_
   optional extra CAs from `certs/`. `docker-compose.yml`: SQL Server, RabbitMQ (management UI), API (migrates,
   Swagger), 2 Worker replicas, web (nginx; built by the UI work). Health-gated startup order; secrets from `.env`.
   **Verified:** stack healthy, crawl Completed (38 pages) with work split across both replicas (21/17).
+- `web/`: Vite + React 18 + TypeScript, react-router, TanStack Query. Start Crawl (validation, server field errors),
+  Job Details (polls every 1.5 s while Pending/Running, progress, cancel, recursive tree with DLR and lazy links once
+  Completed), History (paged). Loading/error/empty states, accessible toggles. nginx image proxies `/api` to the API.
+  **Verified:** `npm run build` + lint pass; full compose stack serves the UI on :3000 and a crawl renders end to end.
 - Unit tests: 64 passing.
 - Docs: ADR-001..003 ([DECISIONS.md](DECISIONS.md)), [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
 ## Next (in order)
-1. React UI (`web/`).
-2. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
-3. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
+1. Integration tests (incl. API tests via WebApplicationFactory) (Testcontainers SQL Server), CI workflow.
+2. README: run instructions, message schema, idempotency, retry/DLQ, what was cut.
 
 ## Known gaps (to address later, in priority order)
 1. **SSRF**: job URLs are not checked against loopback/private/link-local ranges (e.g. `http://localhost`,
