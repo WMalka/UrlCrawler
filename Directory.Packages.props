@@ -1,0 +1,17 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- MassTransit pinned to 8.4.x: v9+ is commercial, and 8.5+ pulls EF Core 9 on net8.0. -->
+    <PackageVersion Include="MassTransit.EntityFrameworkCore" Version="8.4.1" />
+    <PackageVersion Include="MassTransit.RabbitMQ" Version="8.4.1" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.32" />
+
+    <PackageVersion Include="coverlet.collector" Version="6.0.0" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageVersion Include="xunit" Version="2.5.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.5.3" />
+  </ItemGroup>
+</Project>
